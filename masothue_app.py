@@ -750,7 +750,13 @@ class MasothueApp(tk.Tk):
         # Bind mouse wheel để scroll treeview
         def _on_tree_mousewheel(event):
             if event.delta:
-                delta = -1 * (event.delta / 120)  # Windows: 120 units per notch
+                # Windows: delta là bội số của 120 (120, 240, ...)
+                # macOS: delta thường là 1 hoặc -1
+                import sys
+                if sys.platform == "darwin":  # macOS
+                    delta = -1 * event.delta
+                else:  # Windows và Linux
+                    delta = -1 * (event.delta / 120)
                 self.tree.yview_scroll(int(delta), "units")
         
         def _on_tree_mousewheel_linux_up(event):
@@ -829,7 +835,13 @@ class MasothueApp(tk.Tk):
         def _on_mousewheel(event):
             # Windows và MacOS: event.delta
             if event.delta:
-                delta = -1 * (event.delta / 120)  # Windows: 120 units per notch
+                # Windows: delta là bội số của 120 (120, 240, ...)
+                # macOS: delta thường là 1 hoặc -1
+                import sys
+                if sys.platform == "darwin":  # macOS
+                    delta = -1 * event.delta
+                else:  # Windows và Linux
+                    delta = -1 * (event.delta / 120)
                 detail_canvas.yview_scroll(int(delta), "units")
         
         def _on_mousewheel_linux_up(event):
@@ -916,7 +928,14 @@ class MasothueApp(tk.Tk):
             # Bind mouse wheel cho frame và labels để scroll hoạt động khi hover vào
             def _on_detail_mousewheel(event):
                 if event.delta:
-                    detail_canvas.yview_scroll(-1 * int(event.delta / 120), "units")
+                    # Windows: delta là bội số của 120 (120, 240, ...)
+                    # macOS: delta thường là 1 hoặc -1
+                    import sys
+                    if sys.platform == "darwin":  # macOS
+                        delta = -1 * event.delta
+                    else:  # Windows và Linux
+                        delta = -1 * (event.delta / 120)
+                    detail_canvas.yview_scroll(int(delta), "units")
             
             def _on_detail_mousewheel_linux_up(event):
                 detail_canvas.yview_scroll(-1, "units")

@@ -12,15 +12,31 @@ from urllib.parse import urljoin
 try:
     from curl_cffi import requests as cffi_requests
     CURL_CFFI_AVAILABLE = True
+    # curl_cffi có thể raise exceptions từ module riêng của nó
+    try:
+        from curl_cffi.requests import HTTPError as CffiHTTPError, RequestException as CffiRequestException
+    except (ImportError, AttributeError):
+        # Fallback: curl_cffi có thể dùng chung exceptions với requests
+        CffiHTTPError = None
+        CffiRequestException = None
 except ImportError:
     cffi_requests = None
     CURL_CFFI_AVAILABLE = False
+    CffiHTTPError = None
+    CffiRequestException = None
 
-# Import requests và exceptions (dùng chung cho cả curl_cffi và requests)
+# Import requests và exceptions
 import requests
-# curl_cffi tương thích với requests exceptions
 HTTPError = requests.HTTPError
 RequestException = requests.RequestException
+
+# Tạo tuple exceptions để catch cả hai loại
+if CffiHTTPError and CffiRequestException:
+    HTTPErrorTypes = (HTTPError, CffiHTTPError)
+    RequestExceptionTypes = (RequestException, CffiRequestException)
+else:
+    HTTPErrorTypes = (HTTPError,)
+    RequestExceptionTypes = (RequestException,)
 
 from bs4 import BeautifulSoup
 
@@ -201,7 +217,7 @@ class MasothueClient:
                     
                     return (html_content, soup)
                     
-            except HTTPError as e:
+            except HTTPErrorTypes as e:
                 status_code = e.response.status_code
                 logger.warning(
                     f"HTTP error {status_code} khi request {url}: {e}",
@@ -277,7 +293,7 @@ class MasothueClient:
                 logger.debug("Chờ %s giây trước khi retry...", delay)
                 time.sleep(delay)
                 
-            except RequestException as e:
+            except RequestExceptionTypes as e:
                 logger.warning(f"Request error khi request {url} (attempt {attempt + 1}/{retries}): {e}")
                 
                 if attempt == retries - 1:
