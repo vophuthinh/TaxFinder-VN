@@ -3,3 +3,8 @@ requests
 beautifulsoup4
 openpyxl
 python-dotenv
+
+# Optional: curl_cffi để vượt qua TLS fingerprinting (khuyến nghị)
+# Cài đặt: pip install curl_cffi
+# curl_cffi giả lập trình duyệt thật tốt hơn requests, giúp tránh bị chặn
+curl_cffi

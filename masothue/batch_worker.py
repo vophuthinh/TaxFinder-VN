@@ -146,6 +146,7 @@ class BatchWorker:
     ) -> BatchResultDict:
         """
         Xử lý tra cứu một query - chỉ làm business logic, không có UI logic.
+        Tối ưu: Check cache trước để skip các query đã có kết quả.
         
         Args:
             query: Query cần tra cứu (MST hoặc tên công ty)
@@ -163,6 +164,7 @@ class BatchWorker:
         if cancelled_callback and cancelled_callback():
             raise CancelledError("Operation đã bị hủy")
         
+        # Tra cứu bình thường (search_companies đã nhanh, không cần skip)
         results: List[CompanySearchResult] = self.client.search_companies(query=query, page=1)
         
         if cancelled_callback and cancelled_callback():
@@ -173,6 +175,7 @@ class BatchWorker:
         
         result = results[0]
         
+        # Lấy details (get_company_details tự động check cache và skip nếu có)
         details: Optional[CompanyDetails] = None
         if result.detail_url:
             try:

@@ -4,11 +4,24 @@
 import logging
 import time
 import threading
+import random
 
 from typing import List, Optional, Callable, Dict, Any
 from urllib.parse import urljoin
 
+try:
+    from curl_cffi import requests as cffi_requests
+    CURL_CFFI_AVAILABLE = True
+except ImportError:
+    cffi_requests = None
+    CURL_CFFI_AVAILABLE = False
+
+# Import requests và exceptions (dùng chung cho cả curl_cffi và requests)
 import requests
+# curl_cffi tương thích với requests exceptions
+HTTPError = requests.HTTPError
+RequestException = requests.RequestException
+
 from bs4 import BeautifulSoup
 
 from masothue.rate_limiter import RateLimiter
@@ -50,6 +63,15 @@ CAPTCHA_WIDGET_PATTERNS = [
 
 CAPTCHA_TEXT_PATTERN = re.compile(r'geetest|recaptcha|hcaptcha', re.I)
 
+# Danh sách User-Agent hiện đại
+USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:123.0) Gecko/20100101 Firefox/123.0",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edge/122.0.0.0"
+]
+
 
 class MasothueClient:
     """
@@ -66,18 +88,25 @@ class MasothueClient:
         cache_dir: str = None,
         cache_expiry_days: int = None
     ):
-        self.session = requests.Session()
+        # Sử dụng curl_cffi nếu có, fallback về requests
+        if CURL_CFFI_AVAILABLE:
+            # Giả lập Chrome 120 để vượt qua TLS fingerprinting
+            self.session = cffi_requests.Session(impersonate="chrome120")
+            logger.info("Using curl_cffi with Chrome 120 impersonation")
+        else:
+            import requests
+            self.session = requests.Session()
+            logger.info("Using standard requests library (curl_cffi not available, install with: pip install curl_cffi)")
+        
         self.session.headers.update({
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/120.0.0.0 Safari/537.36"
-            ),
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             "Accept-Language": "vi-VN,vi;q=0.9,en;q=0.8",
             "Accept-Encoding": "gzip, deflate",
             "Connection": "keep-alive"
         })
+        # Random User-Agent ngay khi khởi tạo (chỉ nếu dùng requests, curl_cffi tự động set)
+        if not CURL_CFFI_AVAILABLE:
+            self._rotate_user_agent()
         self.timeout = timeout or REQUEST_TIMEOUT
         self._lock = threading.Lock()
         self._cancelled_callback: Optional[callable] = None
@@ -98,6 +127,12 @@ class MasothueClient:
             )
         else:
             self.file_cache = None
+    
+    def _rotate_user_agent(self):
+        """Đổi User-Agent ngẫu nhiên"""
+        ua = random.choice(USER_AGENTS)
+        self.session.headers.update({"User-Agent": ua})
+        logger.debug(f"Rotated User-Agent to: {ua}")
 
     def set_cancelled_callback(self, callback: Optional[Callable[[], bool]]) -> None:
         """
@@ -166,17 +201,68 @@ class MasothueClient:
                     
                     return (html_content, soup)
                     
-            except requests.HTTPError as e:
+            except HTTPError as e:
+                status_code = e.response.status_code
                 logger.warning(
-                    f"HTTP error {e.response.status_code} khi request {url}: {e}",
-                    extra={"url": url, "status_code": e.response.status_code}
+                    f"HTTP error {status_code} khi request {url}: {e}",
+                    extra={"url": url, "status_code": status_code}
                 )
                 
+                # Nếu bị chặn (403) hoặc quá tải (429) - Smart Cool-down
+                if status_code in [403, 429]:
+                    logger.error(f"⚠️ Phát hiện bị chặn (HTTP {status_code}). Kích hoạt Cool-down.")
+                    
+                    # Xóa cookie để reset session
+                    self.session.cookies.clear()
+                    self._rotate_user_agent()  # Đổi nhận diện
+                    
+                    # Ngủ dài hơn nhiều so với retry bình thường
+                    # 429 thường có header Retry-After, nếu không có thì ngủ 30-60s
+                    try:
+                        retry_after = e.response.headers.get("Retry-After", "30")
+                        wait_time = int(retry_after)
+                    except (ValueError, TypeError):
+                        wait_time = 30  # Default nếu không parse được
+                    
+                    # Nếu là 403 (Forbidden), ngủ lâu hơn để server thả IP
+                    if status_code == 403:
+                        wait_time = max(wait_time, 60)
+                    
+                    logger.info(f"Đang 'ngủ đông' {wait_time} giây để tránh bị ban vĩnh viễn...")
+                    
+                    # Check cancellation trong khi chờ
+                    if self._cancelled_callback:
+                        # Chia wait_time thành các chunk nhỏ để check cancellation
+                        chunk_size = 5  # Check mỗi 5 giây
+                        remaining = wait_time
+                        while remaining > 0:
+                            if self._cancelled_callback():
+                                logger.debug("Request cancelled during cool-down, raising CancelledError")
+                                raise CancelledError("Operation đã bị hủy bởi người dùng")
+                            sleep_time = min(chunk_size, remaining)
+                            time.sleep(sleep_time)
+                            remaining -= sleep_time
+                    else:
+                        time.sleep(wait_time)
+                    
+                    # Sau khi ngủ dậy, retry lại request này (nếu còn lượt)
+                    if attempt < retries - 1:
+                        continue
+                    else:
+                        # Hết lượt thì raise lỗi ra ngoài
+                        raise NetworkError(
+                            message=f"Lỗi HTTP {status_code} khi truy cập {url} (đã thử cool-down)",
+                            url=url,
+                            status_code=status_code,
+                            original_error=e
+                        )
+                
+                # Xử lý các lỗi HTTP khác (không phải 403/429)
                 if attempt == retries - 1:
                     raise NetworkError(
-                        message=f"Lỗi HTTP {e.response.status_code} khi truy cập {url}",
+                        message=f"Lỗi HTTP {status_code} khi truy cập {url}",
                         url=url,
-                        status_code=e.response.status_code,
+                        status_code=status_code,
                         original_error=e
                     )
                 
@@ -191,7 +277,7 @@ class MasothueClient:
                 logger.debug("Chờ %s giây trước khi retry...", delay)
                 time.sleep(delay)
                 
-            except requests.RequestException as e:
+            except RequestException as e:
                 logger.warning(f"Request error khi request {url} (attempt {attempt + 1}/{retries}): {e}")
                 
                 if attempt == retries - 1:

@@ -357,14 +357,14 @@ class MasothueApp(tk.Tk):
 
         # Menu Cài đặt / Tác vụ chính
         settings_menu = tk.Menu(menubar, tearoff=0)
-        settings_menu.add_command(label="🗑️ Xóa kết quả", command=self.on_clear_results)
-        settings_menu.add_command(label="🔄 Làm mới", command=self.on_refresh)
+        settings_menu.add_command(label="Xóa kết quả", command=self.on_clear_results)
+        settings_menu.add_command(label="Làm mới", command=self.on_refresh)
         settings_menu.add_separator()
-        settings_menu.add_command(label="🛠️ Cài đặt nâng cao...", command=self._show_advanced_settings)
+        settings_menu.add_command(label="Cài đặt nâng cao...", command=self._show_advanced_settings)
         menubar.add_cascade(label="Cài đặt", menu=settings_menu)
         
         help_menu = tk.Menu(menubar, tearoff=0)
-        help_menu.add_command(label="📝 Mở log", command=self._open_log_file)
+        help_menu.add_command(label="Mở log", command=self._open_log_file)
         help_menu.add_separator()
         help_menu.add_command(label="Về ứng dụng", command=self._show_about)
         menubar.add_cascade(label="Trợ giúp", menu=help_menu)
@@ -562,7 +562,7 @@ class MasothueApp(tk.Tk):
         quick_frame_container = tk.Frame(self, bg="#f0f2f5")
         quick_frame_container.pack(side="top", fill="x", padx=15, pady=(15, 10))
         
-        quick_frame = ttk.LabelFrame(quick_frame_container, text="🔍 Tra cứu nhanh", padding=20)
+        quick_frame = ttk.LabelFrame(quick_frame_container, text="⚡ Tra cứu nhanh", padding=20)
         quick_frame.pack(fill="both", expand=True)
 
         # Dùng grid layout để tránh chồng chữ trên màn hình hẹp
@@ -581,7 +581,7 @@ class MasothueApp(tk.Tk):
         self.query_entry.bind("<Return>", lambda e: self.on_search())
         self.query_entry.bind("<KeyRelease>", self._on_query_change)
 
-        self.search_button = ttk.Button(quick_frame, text="🔍 Tra cứu", command=self.on_search, style="Primary.TButton")
+        self.search_button = ttk.Button(quick_frame, text="⚡ Tra cứu", command=self.on_search, style="Primary.TButton")
         self.search_button.grid(row=0, column=2, padx=(8, 0))
 
         # Hàng 2: Status label (colspan 3, căn trái)
@@ -746,6 +746,28 @@ class MasothueApp(tk.Tk):
         
         self.tree.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
+        
+        # Bind mouse wheel để scroll treeview
+        def _on_tree_mousewheel(event):
+            if event.delta:
+                delta = -1 * (event.delta / 120)  # Windows: 120 units per notch
+                self.tree.yview_scroll(int(delta), "units")
+        
+        def _on_tree_mousewheel_linux_up(event):
+            self.tree.yview_scroll(-1, "units")
+        
+        def _on_tree_mousewheel_linux_down(event):
+            self.tree.yview_scroll(1, "units")
+        
+        # Bind mouse wheel cho treeview và tree_frame
+        self.tree.bind("<MouseWheel>", _on_tree_mousewheel)
+        self.tree_frame.bind("<MouseWheel>", _on_tree_mousewheel)
+        
+        # Linux support (Button-4 = scroll up, Button-5 = scroll down)
+        self.tree.bind("<Button-4>", _on_tree_mousewheel_linux_up)
+        self.tree.bind("<Button-5>", _on_tree_mousewheel_linux_down)
+        self.tree_frame.bind("<Button-4>", _on_tree_mousewheel_linux_up)
+        self.tree_frame.bind("<Button-5>", _on_tree_mousewheel_linux_down)
         
         # Bind selection event
         self.tree.bind("<<TreeviewSelect>>", self._on_tree_select)

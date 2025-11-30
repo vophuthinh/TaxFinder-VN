@@ -1,432 +1,298 @@
-# Masothue - Tra cứu Mã số thuế
+# Masothue - Tra cứu Mã số thuế v1.0.0
 
-Ứng dụng desktop hiện đại để tra cứu thông tin doanh nghiệp theo mã số thuế hoặc tên công ty từ website masothue.com. Hỗ trợ tra cứu đơn lẻ và tra cứu hàng loạt từ file Excel với giao diện chuyên nghiệp, tính năng caching thông minh và thread-safe architecture.
+Ứng dụng desktop Python để tra cứu thông tin doanh nghiệp theo mã số thuế hoặc tên công ty từ website masothue.com.
 
 ![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)
 ![License](https://img.shields.io/badge/License-Research%20Only-yellow.svg)
 ![Version](https://img.shields.io/badge/Version-1.0.0-green.svg)
+![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
+
+## 📋 Mục lục
+
+- [Tính năng](#-tính-năng)
+- [Cài đặt](#-cài-đặt)
+- [Hướng dẫn sử dụng](#-hướng-dẫn-sử dụng)
+- [Cấu trúc dự án](#-cấu-trúc-dự-án)
+- [Dependencies](#-dependencies)
+- [Troubleshooting](#-troubleshooting)
+- [Changelog](#-changelog)
+- [Roadmap](#-roadmap)
+- [License](#-license)
 
 ## ✨ Tính năng
 
-### 🎨 Giao diện
-
-- **Header bar chuyên nghiệp**: Header bar màu đen với title và subtitle
-- **Menu bar đầy đủ**: Menu "Cài đặt" và "Trợ giúp" với các chức năng hữu ích
-- **UI hiện đại**: Giao diện đẹp mắt với màu sắc chuyên nghiệp, font Segoe UI
-- **Empty state**: Hiển thị thông báo rõ ràng khi chưa có dữ liệu
-- **Zebra rows**: Bảng kết quả có màu xen kẽ dễ đọc
-- **Panel chi tiết**: Hiển thị thông tin chi tiết bên phải khi chọn dòng
-- **Auto-select**: Tự động chọn dòng đầu tiên khi có kết quả
-- **ETL Loading Indicator**: Card loading với progress bar và nút Hủy tích hợp
-- **Responsive layout**: Layout linh hoạt với PanedWindow, tự điều chỉnh theo DPI
-- **UI Locking**: Tự động khóa UI khi đang batch để tránh conflict
-- **Input validation feedback**: Hiển thị trạng thái khi nhập MST hoặc text dài
-
 ### 🔍 Tra cứu
-
 - **Tra cứu đơn lẻ**: Tìm kiếm công ty theo tên hoặc mã số thuế
 - **Tra cứu hàng loạt**: Nhập file Excel và tra cứu nhiều công ty cùng lúc
-- **Kết quả chính xác**: Tự động tìm kết quả khớp chính xác khi tra cứu bằng MST
-- **Fetch details**: Tự động lấy thông tin chi tiết đầy đủ
-- **Input validation**: Tự động validate và sanitize input trước khi tra cứu
+- **Kết quả chi tiết**: Hiển thị đầy đủ thông tin doanh nghiệp với UI trực quan
 
 ### 💾 Dữ liệu
-
-- **Import Excel**: Đọc danh sách công ty từ file Excel (.xlsx, .xls)
-  - Tự động nhận diện cột chứa MST hoặc tên công ty
-  - Validate MST linh hoạt (8-15 chữ số)
-  - Loại bỏ trùng lặp tự động
+- **Import Excel**: Đọc danh sách công ty từ file Excel (.xlsx, .xls) với auto-detection cột
 - **Export Excel**: Xuất kết quả tra cứu ra file Excel với metadata
-- **Cache thông minh**: 
-  - Tự động cache kết quả để tăng tốc độ tra cứu lần sau
-  - Cache size limit (mặc định 100MB)
-  - Tự động cleanup cache cũ và vượt quá size limit
-  - Thread-safe cache operations
+- **Cache thông minh**: Tự động cache kết quả để tăng tốc độ và giảm request
 
-### ⚙️ Cài đặt nâng cao
+### ⚙️ Bảo vệ & Tối ưu
+- **Rate limiting**: Tự động giới hạn số lượng request để tránh bị chặn
+- **Smart Cool-down**: Tự động ngừng và chờ khi phát hiện bị chặn (403/429)
+- **User-Agent rotation**: Tự động đổi User-Agent để tránh detection
+- **TLS Fingerprinting bypass**: Hỗ trợ `curl_cffi` để giả lập trình duyệt thật
+- **Cài đặt nâng cao**: Tùy chỉnh rate limit, cache settings
 
-- **Dialog cài đặt**: Menu "Cài đặt → Cài đặt nâng cao..."
-  - Rate limiting: max_requests, time_window, min_delay
-  - Cache: bật/tắt cache, cache_expiry_days
-  - Nút "Đặt lại mặc định" và "Áp dụng"
+### 🎨 Giao diện
+- **GUI hiện đại**: Giao diện đồ họa với Tkinter, dễ sử dụng
+- **CLI**: Command-line interface cho automation
+- **Progress tracking**: Theo dõi tiến độ tra cứu hàng loạt
+- **Error handling**: Xử lý lỗi thân thiện với người dùng
 
-### ⚡ Hiệu năng & Bảo mật
+## 📊 Thông tin lấy được
 
-- **Rate limiting**: Tự động giới hạn số lượng request, random delay
-- **Thread-safe**: Tất cả operations đều thread-safe với `threading.Lock()`
-- **Optimized parsing**: Tránh double parsing HTML (parse một lần, dùng lại)
-- **Caching**: Cache kết quả theo MST, hết hạn sau 7 ngày (có thể config)
-- **CAPTCHA Detection**: Phát hiện CAPTCHA chính xác bằng BeautifulSoup
-
-## 📋 Thông tin lấy được
-
-Khi tra cứu, ứng dụng sẽ lấy các thông tin sau:
-
-- ✅ **Mã số thuế**
-- ✅ **Tên công ty**
-- ✅ **Địa chỉ Thuế**
-- ✅ **Địa chỉ**
-- ✅ **Người đại diện**
-- ✅ **Điện thoại**
-- ✅ **Tình trạng** (Đang hoạt động/Ngừng hoạt động)
-- ✅ **Ngày hoạt động**
-- ✅ **Quản lý bởi**
-- ✅ **Loại hình DN**
-- ✅ **Ngành nghề chính**
-- ✅ **Ngành nghề khác**
-- ✅ **URL chi tiết** (double-click để mở)
+- ✅ Mã số thuế
+- ✅ Tên công ty
+- ✅ Địa chỉ Thuế
+- ✅ Địa chỉ
+- ✅ Người đại diện
+- ✅ Điện thoại
+- ✅ Tình trạng (Đang hoạt động/Ngừng hoạt động)
+- ✅ Ngày hoạt động
+- ✅ Quản lý bởi
+- ✅ Loại hình DN
+- ✅ Ngành nghề chính
+- ✅ Ngành nghề khác
 
 ## 🚀 Cài đặt
 
 ### Yêu cầu
-
 - Python 3.11 trở lên
 - pip (Python package manager)
 
 ### Các bước cài đặt
 
 1. **Clone hoặc download dự án**
-
 ```bash
 git clone <repository-url>
 cd Masothue
 ```
 
 2. **Cài đặt dependencies**
-
 ```bash
 pip install -r requirements.txt
 ```
 
-3. **Chạy ứng dụng GUI**
+3. **Cài đặt optional (khuyến nghị)**
+```bash
+# Cài curl_cffi để vượt qua TLS fingerprinting tốt hơn
+pip install curl_cffi
+```
 
+4. **Chạy ứng dụng**
+
+**GUI (Giao diện đồ họa):**
 ```bash
 python main.py
 ```
 
-Hoặc trên Windows:
-
+**CLI (Command Line):**
 ```bash
-run.bat
+# Tra cứu đơn lẻ
+python -m masothue.cli search "CÔNG TY TNHH ABC"
+
+# Tra cứu hàng loạt từ Excel
+python -m masothue.cli batch input.xlsx output.xlsx
 ```
 
 ## 📖 Hướng dẫn sử dụng
 
-### GUI Application
+### Tra cứu đơn lẻ
 
-#### Tra cứu đơn lẻ
+1. Mở ứng dụng: `python main.py`
+2. Nhập mã số thuế hoặc tên công ty vào ô tìm kiếm
+3. Nhấn nút "⚡ Tra cứu" hoặc nhấn Enter
+4. Xem kết quả trong bảng và panel chi tiết bên phải
+5. Double-click vào dòng để mở trang web chi tiết
 
-1. Mở ứng dụng
-2. Nhập tên công ty hoặc mã số thuế vào ô tìm kiếm
-3. Nhấn nút **"🔎 Tra cứu"** hoặc nhấn Enter
-4. Kết quả sẽ hiển thị trong bảng bên trái
-5. Click vào một dòng để xem thông tin chi tiết bên phải
-6. Double-click vào dòng để mở trang chi tiết trên web
+### Tra cứu hàng loạt
 
-#### Tra cứu hàng loạt từ Excel
-
-1. Chuẩn bị file Excel với cột chứa tên công ty hoặc mã số thuế
-2. Nhấn nút **"📥 Nhập Excel"**
+1. Chuẩn bị file Excel với cột chứa mã số thuế hoặc tên công ty
+2. Nhấn nút "📂 Nhập Excel"
 3. Chọn file Excel của bạn
-4. Xác nhận số lượng công ty cần tra cứu
-5. Chờ quá trình tra cứu hoàn tất
-6. Có thể nhấn **"✕ Hủy"** để dừng quá trình bất cứ lúc nào
-7. Xem kết quả trong bảng hoặc nhấn **"📤 Xuất Excel"** để lưu ra file mới
+4. Ứng dụng sẽ tự động nhận diện cột chứa dữ liệu (hoặc cho phép bạn chọn thủ công)
+5. Xác nhận số lượng công ty cần tra cứu
+6. Đợi quá trình tra cứu hoàn thành (có thể hủy bất cứ lúc nào)
+7. Nhấn "💾 Xuất Excel" để lưu kết quả
 
-### Command Line Interface (CLI)
+### Cài đặt nâng cao
 
-Ứng dụng cũng hỗ trợ CLI để tra cứu từ terminal:
+1. Vào menu "Cài đặt → Cài đặt nâng cao..."
+2. Tùy chỉnh:
+   - **Rate limiting**: 
+     - Số request tối đa (mặc định: 10)
+     - Cửa sổ thời gian (mặc định: 60 giây)
+     - Độ trễ tối thiểu (mặc định: 1.0 giây)
+   - **Cache**: 
+     - Bật/tắt cache
+     - Thời gian hết hạn (mặc định: 7 ngày)
+3. Nhấn "Áp dụng" để lưu
 
-#### Tra cứu đơn lẻ
-
-```bash
-python -m masothue.cli search --query "3604062974"
-python -m masothue.cli search --query "Công ty ABC"
-python -m masothue.cli search --query "3604062974" --verbose
-```
-
-#### Tra cứu hàng loạt
-
-```bash
-python -m masothue.cli batch input.xlsx output.xlsx
-python -m masothue.cli batch input.xlsx  # Tự động tạo output file
-python -m masothue.cli batch input.xlsx output.xlsx --verbose
-```
-
-## 📁 Cấu trúc dự án
+## 🛠️ Cấu trúc dự án
 
 ```
 Masothue/
-├── main.py                    # Entry point cho GUI application
-├── masothue_app.py            # Ứng dụng GUI (Tkinter)
-├── masothue/                  # Package chính
-│   ├── __init__.py           # Package exports
-│   ├── client.py             # MasothueClient - Core logic (thread-safe, optimized parsing)
-│   ├── models.py            # CompanySearchResult dataclass
-│   ├── cache.py             # FileCache - Caching system (thread-safe, size limit)
-│   ├── rate_limiter.py      # RateLimiter - Rate limiting (thread-safe, metrics)
-│   ├── batch_worker.py      # BatchWorker - Batch processing logic
-│   ├── excel_service.py     # ExcelService - Excel I/O operations
-│   ├── formatters.py        # Data formatting utilities
-│   ├── config.py            # Cấu hình package
-│   ├── constants.py         # UI constants và messages
-│   ├── theme.py             # Theme colors
-│   ├── exceptions.py        # Custom exceptions hierarchy
-│   ├── utils.py             # Utility functions (validation, sanitization)
-│   └── cli.py               # Command-line interface
-├── views/                    # UI view components (optional)
-│   ├── search_frame.py
-│   └── batch_frame.py
-├── requirements.txt          # Dependencies
-├── README.md                 # File này
-├── logs/                     # Thư mục log files (tự động tạo)
-│   └── masothue_YYYYMMDD.log
-└── .cache/                   # Thư mục cache (tự động tạo)
+├── main.py                 # Entry point cho GUI
+├── masothue_cli.py         # Entry point cho CLI (legacy)
+├── masothue_app.py         # GUI application (Tkinter)
+├── requirements.txt        # Dependencies
+├── README.md              # Tài liệu này
+│
+├── masothue/               # Core package
+│   ├── __init__.py        # Package exports
+│   ├── client.py           # HTTP client và parsing (với curl_cffi support)
+│   ├── cache.py            # Cache management (file-based)
+│   ├── batch_worker.py     # Batch processing logic
+│   ├── excel_service.py    # Excel I/O operations
+│   ├── rate_limiter.py    # Rate limiting với thread safety
+│   ├── models.py           # Data models
+│   ├── exceptions.py       # Custom exceptions
+│   ├── formatters.py       # Data formatting utilities
+│   ├── utils.py            # Validation và sanitization
+│   ├── config.py           # Configuration constants
+│   ├── constants.py        # UI constants
+│   ├── theme.py            # UI theme colors
+│   └── cli.py              # CLI interface
+│
+└── views/                  # UI components (future)
+    ├── search_frame.py
+    └── batch_frame.py
 ```
-
-## 💻 Sử dụng như một Package
-
-Bạn có thể import và sử dụng `masothue` như một Python package:
-
-```python
-from masothue import (
-    MasothueClient, 
-    CompanySearchResult,
-    CaptchaRequiredError,
-    NetworkError,
-    ValidationError,
-    FileError
-)
-
-# Tạo client
-client = MasothueClient(
-    max_requests=10,
-    time_window=60,
-    min_delay=1.0,
-    enable_cache=True,
-    cache_dir=".cache",
-    cache_expiry_days=7
-)
-
-# Tra cứu đơn lẻ
-try:
-    results = client.search_companies("3604062974")
-    for result in results:
-        print(f"{result.name} - {result.tax_code}")
-        
-    # Lấy chi tiết
-    if results and results[0].detail_url:
-        details = client.get_company_details(results[0].detail_url)
-        print(details)
-        
-except CaptchaRequiredError:
-    print("Website yêu cầu CAPTCHA")
-except NetworkError as e:
-    print(f"Lỗi mạng: {e}")
-except ValidationError as e:
-    print(f"Dữ liệu không hợp lệ: {e}")
-
-# Xem metrics của rate limiter
-metrics = client.rate_limiter.get_metrics()
-print(f"Requests/second: {metrics['requests_per_second']}")
-print(f"Average delay: {metrics['average_delay']}s")
-
-# Cleanup cache
-stats = client.file_cache.prune()
-print(f"Đã xóa {stats['deleted_count']} file cache, giải phóng {stats['freed_mb']:.2f}MB")
-```
-
-## ⚙️ Cấu hình
-
-### Cấu hình ứng dụng (config.py)
-
-Bạn có thể chỉnh sửa các thông số trong file `masothue/config.py`:
-
-```python
-BASE_URL = "https://masothue.com"
-
-DEFAULT_RATE_LIMIT = {
-    "max_requests": 10,      # Số request tối đa trong time_window
-    "time_window": 60,       # Khoảng thời gian tính bằng giây
-    "min_delay": 1.0,        # Delay tối thiểu giữa các request (giây)
-    "max_delay": 3.0,        # Delay tối đa (random delay để tránh pattern)
-    "use_random_delay": True # Sử dụng random delay giữa min_delay và max_delay
-}
-
-REQUEST_TIMEOUT = 8          # Timeout cho mỗi request (giây)
-REQUEST_RETRIES = 2          # Số lần retry khi lỗi
-REQUEST_RETRY_DELAY = 1      # Delay giữa các retry (giây)
-
-# Cache settings
-CACHE_ENABLED = True         # Bật/tắt cache
-CACHE_DIR = ".cache"         # Thư mục lưu cache
-CACHE_EXPIRY_DAYS = 7        # Cache hết hạn sau bao nhiêu ngày
-CACHE_MAX_SIZE_MB = 100.0    # Kích thước cache tối đa (MB)
-CACHE_ENABLE_CLEANUP = True  # Tự động cleanup cache khi vượt quá size limit
-```
-
-### Cấu hình từ UI
-
-Bạn có thể cấu hình rate limiting và cache trực tiếp từ giao diện:
-
-1. Mở menu **"Cài đặt → Cài đặt nâng cao..."**
-2. Điều chỉnh các thông số
-3. Nhấn **"Áp dụng"** để lưu cài đặt
 
 ## 📦 Dependencies
 
-- `requests` - HTTP library để gửi requests
-- `beautifulsoup4` - Parse HTML (cải thiện CAPTCHA detection)
-- `openpyxl` - Đọc/ghi file Excel
-- `python-dotenv` - Load environment variables (nếu cần)
+### Core
+- `requests` - HTTP client (fallback nếu không có curl_cffi)
+- `beautifulsoup4` - HTML parsing
+- `openpyxl` - Excel file handling
+- `python-dotenv` - Environment variables
 
-Xem chi tiết trong `requirements.txt`
+### Optional (khuyến nghị)
+- `curl_cffi` - Advanced TLS fingerprinting bypass, giả lập trình duyệt thật
 
-## 🔧 Tính năng kỹ thuật
+## ⚠️ Lưu ý quan trọng
 
-### Rate Limiting
-- Tự động giới hạn số lượng request trong một khoảng thời gian
-- Tránh bị website chặn do spam request
-- **Thread-safe** với `threading.Lock()`
-- **Random delay** giữa các request để giảm pattern detection
-- **Metrics tracking**: `get_metrics()` để lấy thống kê
+- ⚠️ **CAPTCHA**: Ứng dụng chỉ hỗ trợ phát hiện CAPTCHA, không giải tự động
+- ⚠️ **Rate limiting**: Không tra cứu quá dày để tránh bị chặn IP
+- ⚠️ **Terms of Service**: Vui lòng tuân thủ Terms of Service của masothue.com
+- ⚠️ **Mục đích**: Dự án này chỉ dùng cho mục đích nghiên cứu và học tập
 
-### Retry Logic
-- Tự động retry khi gặp lỗi mạng
-- Exponential backoff: delay tăng dần sau mỗi lần retry
-- Xử lý riêng cho HTTP 404 (không retry)
-- Xử lý riêng cho CAPTCHA (không retry, raise exception ngay)
+## 🐛 Troubleshooting
 
-### Caching System
-- **File-based cache**: Lưu cache vào disk trong thư mục `.cache/`
-- **Cache key**: Sử dụng MST hoặc hash của URL
-- **Expiry**: Cache tự động hết hạn sau N ngày
-- **Size limit**: Tự động cleanup khi vượt quá size limit
-- **Thread-safe**: File operations được bảo vệ bằng `threading.Lock()`
+### Lỗi CAPTCHA
+Nếu gặp thông báo "Server yêu cầu CAPTCHA":
+1. Mở trình duyệt và truy cập masothue.com
+2. Giải CAPTCHA thủ công trên website
+3. Đợi vài phút rồi thử lại trong ứng dụng
+4. Hoặc giảm số lượng request trong batch
 
-### Threading & UI Updates
-- Tra cứu đơn lẻ và hàng loạt đều chạy trong thread riêng
-- UI không bị lag khi tra cứu
-- **Thread-safe với queue.Queue**: Tất cả UI updates từ background threads đều qua queue
-- **Thread-safe network**: `requests.Session` và `RateLimiter` được bảo vệ bằng `threading.Lock()`
-- **UI Locking**: Tự động khóa các nút UI khi đang batch
-
-### HTML Parsing Optimization
-- **Tránh double parsing**: Parse HTML một lần trong `_get_html_and_soup()`, dùng lại soup cho CAPTCHA check và data extraction
-- Sử dụng **BeautifulSoup** để parse HTML chính xác
-- Kết hợp text search và cấu trúc HTML (table, itemprop, etc.)
-- Có fallback mechanisms khi website thay đổi
-
-### CAPTCHA Detection
-- **Phát hiện chính xác**: Chỉ báo CAPTCHA khi thực sự có widget CAPTCHA
-- Sử dụng BeautifulSoup để tìm:
-  - CAPTCHA widgets (Geetest, reCAPTCHA, hCaptcha)
-  - Script tags load CAPTCHA libraries
-  - iframe của CAPTCHA
-  - Data attributes của CAPTCHA
-- **Không báo sai**: Loại bỏ các từ khóa chung chung
-- **Thông báo rõ ràng**: Giải thích lý do và hướng dẫn xử lý
-
-### Input Validation & Security
-- **Query sanitization**: Tự động sanitize và validate query input
-- **Tax code validation**: Validate mã số thuế (8-15 chữ số)
-- **File path validation**: Kiểm tra extension, size, path traversal attacks
-- **HTTPS verification**: Explicit SSL certificate verification
-- **Error handling**: Specific exceptions cho từng loại lỗi
-
-## ⚠️ Lưu ý
-
-1. **Demo nghiên cứu**: Ứng dụng này chỉ dùng cho mục đích nghiên cứu và học tập
-
-2. **Rate limiting**: Vui lòng không chỉnh sửa rate limit quá thấp để tránh làm quá tải server
-
-3. **HTML parsing**: Nếu masothue.com thay đổi cấu trúc HTML, có thể cần cập nhật parser trong `masothue/client.py`
-
-4. **CAPTCHA**: 
-   - Ứng dụng sẽ phát hiện và thông báo khi website yêu cầu CAPTCHA
-   - **Không tự động giải CAPTCHA**: Ứng dụng chỉ hỗ trợ phát hiện, không giải tự động
-   - Khi gặp CAPTCHA: Mở trình duyệt, giải CAPTCHA thủ công, đợi vài phút rồi thử lại
-
-5. **Cache**: 
-   - Cache được lưu trong thư mục `.cache/`
-   - Tự động cleanup khi vượt quá 100MB
-   - Có thể xóa thư mục `.cache/` để làm mới dữ liệu
-
-## 🐛 Xử lý lỗi
-
-### Lỗi "Không tra cứu được"
+### Lỗi kết nối
 - Kiểm tra kết nối internet
-- Kiểm tra xem masothue.com có hoạt động không
 - Thử lại sau vài phút
-- Xem log file trong thư mục `logs/`
+- Kiểm tra file log trong thư mục `logs/`
+- Cài đặt `curl_cffi` để cải thiện khả năng kết nối:
+  ```bash
+  pip install curl_cffi
+  ```
 
-### Lỗi "Website yêu cầu xác minh CAPTCHA"
-- Mở trình duyệt và truy cập masothue.com
-- Giải CAPTCHA thủ công trên website
-- Đợi vài phút rồi thử lại trong ứng dụng
+### Lỗi 403/429 (Bị chặn)
+- Ứng dụng tự động phát hiện và kích hoạt "Smart Cool-down"
+- Đợi 60 giây (hoặc theo Retry-After header) rồi tự động retry
+- Nếu vẫn bị chặn, đợi lâu hơn hoặc giảm rate limit
 
-### Lỗi "Không đọc được file Excel"
-- Kiểm tra file có đúng định dạng .xlsx hoặc .xls không
-- Đảm bảo file không đang được mở bởi ứng dụng khác
-- Kiểm tra file có quá lớn không (tối đa 50MB)
+### Lỗi đọc Excel
+- Đảm bảo file Excel không bị khóa bởi ứng dụng khác
+- Kiểm tra định dạng file (.xlsx hoặc .xls)
+- Đảm bảo file không bị hỏng
 
 ## 📝 Logging
 
-Ứng dụng tự động log vào file trong thư mục `logs/`:
+Ứng dụng tự động ghi log vào thư mục `logs/`:
+- File log: `logs/masothue_YYYYMMDD.log`
+- Mở log: Menu "Trợ giúp → Mở log"
+- Log level: DEBUG, INFO, WARNING, ERROR
 
-- **Log file**: `logs/masothue_YYYYMMDD.log`
-- **Format**: `%(asctime)s [%(levelname)s] %(name)s: %(message)s`
-- **Handlers**: Cả console và file
-- **Encoding**: UTF-8
+## 📋 Changelog
 
-Để bật debug mode, sửa trong `main.py`:
+### v1.0.0 (2024-12-01)
 
-```python
-logging.basicConfig(
-    level=logging.DEBUG,  # Đổi từ INFO sang DEBUG
-    ...
-)
-```
+**Tính năng chính:**
+- ✅ Tra cứu đơn lẻ và hàng loạt
+- ✅ Import/Export Excel với auto-detection cột
+- ✅ Cache thông minh (file-based)
+- ✅ Rate limiting với thread safety
+- ✅ Smart Cool-down khi bị chặn (403/429)
+- ✅ User-Agent rotation
+- ✅ Hỗ trợ curl_cffi (TLS fingerprinting bypass)
+- ✅ GUI và CLI interface
+- ✅ Progress tracking và cancellation
+- ✅ Error handling toàn diện
 
-**Mở file log**: Sử dụng menu "Trợ giúp → 📋 Mở log" trong ứng dụng.
+**Cải tiến:**
+- Tối ưu HTML parsing (tránh double parsing)
+- Thread-safe operations
+- Input validation và sanitization
+- UI responsive với mouse wheel scrolling
 
-## 🏗️ Kiến trúc
+## 🗺️ Roadmap
 
-### Thread Safety
-- **MasothueClient**: Thread-safe với `threading.Lock()` cho `requests.Session`
-- **RateLimiter**: Thread-safe với `threading.Lock()` cho shared state
-- **FileCache**: Thread-safe với `threading.Lock()` cho file operations
-- **UI Updates**: Thread-safe với `queue.Queue()` cho UI updates từ background threads
+### v1.1.0 (Planned)
+- [ ] Export nhiều định dạng (CSV, JSON)
+- [ ] Filter và sort nâng cao trong GUI
+- [ ] Dark mode
+- [ ] Multi-language support
 
-### Code Organization
-- **Package structure**: Đúng chuẩn Python package với `masothue/` directory
-- **Separation of concerns**: Business logic tách khỏi UI
-- **Service layer**: `excel_service.py` cho Excel operations, `batch_worker.py` cho batch processing
-- **Constants**: Tập trung UI messages vào `masothue/constants.py`
-- **Exceptions**: Tập trung custom exceptions vào `masothue/exceptions.py`
-- **Theme**: Tập trung colors vào `masothue/theme.py`
+### v1.2.0 (Future)
+- [ ] Database integration (SQLite)
+- [ ] Scheduled batch processing
+- [ ] API server mode
+- [ ] Webhook notifications
+
+### v2.0.0 (Future)
+- [ ] Multi-threaded batch processing
+- [ ] Proxy support
+- [ ] Advanced analytics dashboard
+- [ ] Plugin system
 
 ## 📄 License
 
 Dự án này chỉ dùng cho mục đích nghiên cứu và học tập.
 
+**Lưu ý**: Vui lòng tuân thủ Terms of Service của masothue.com khi sử dụng ứng dụng này.
+
 ## 👤 Tác giả
 
-Demo nghiên cứu - Tra cứu mã số thuế
+Dự án mã nguồn mở cho cộng đồng.
 
-## 🙏 Cảm ơn
+## 🤝 Đóng góp
 
-- masothue.com - Cung cấp dữ liệu tra cứu
-- Các thư viện open source được sử dụng:
-  - requests
-  - beautifulsoup4
-  - openpyxl
-  - tkinter (built-in)
+Mọi đóng góp đều được chào đón! 
 
-## 🔗 Links
+1. Fork dự án
+2. Tạo feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Mở Pull Request
 
-- [masothue.com](https://masothue.com) - Website tra cứu mã số thuế
+### Guidelines
+- Tuân thủ PEP 8 style guide
+- Viết docstrings cho functions/classes
+- Thêm tests nếu có thể
+- Update README nếu cần
+
+## 📞 Hỗ trợ
+
+- Tạo issue trên GitHub để báo lỗi hoặc đề xuất tính năng
+- Xem file log trong thư mục `logs/` để debug
+- Đọc documentation trong code comments
 
 ---
 
-**Lưu ý**: Ứng dụng này chỉ dùng cho mục đích nghiên cứu. Vui lòng tuân thủ Terms of Service của masothue.com khi sử dụng.
+**Made with ❤️ for the community**
+
+*Version 1.0.0 - December 2024*
