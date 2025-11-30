@@ -11,7 +11,7 @@
 
 - [Tính năng](#-tính-năng)
 - [Cài đặt](#-cài-đặt)
-- [Hướng dẫn sử dụng](#-hướng-dẫn-sử dụng)
+- [Hướng dẫn sử dụng](#-hướng-dẫn-sử-dụng)
 - [Cấu trúc dự án](#-cấu-trúc-dự-án)
 - [Dependencies](#-dependencies)
 - [Troubleshooting](#-troubleshooting)
