@@ -286,9 +286,6 @@ class MasothueClient:
                     logger.debug("Request cancelled after request error, raising CancelledError")
                     raise CancelledError("Operation đã bị hủy bởi người dùng")
                 
-                if self._cancelled_callback and self._cancelled_callback():
-                    current_timeout = min(2, current_timeout)
-                
                 delay = REQUEST_RETRY_DELAY * (attempt + 1)
                 logger.debug("Chờ %s giây trước khi retry...", delay)
                 time.sleep(delay)
@@ -306,9 +303,6 @@ class MasothueClient:
                 if self._cancelled_callback and self._cancelled_callback():
                     logger.debug("Request cancelled after request error, raising CancelledError")
                     raise CancelledError("Operation đã bị hủy bởi người dùng")
-                
-                if self._cancelled_callback and self._cancelled_callback():
-                    current_timeout = min(2, current_timeout)
                 
                 delay = REQUEST_RETRY_DELAY * (attempt + 1)
                 logger.debug("Chờ %s giây trước khi retry...", delay)
