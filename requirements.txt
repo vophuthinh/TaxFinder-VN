@@ -1,0 +1,5 @@
+# Core dependencies cho app tra cứu MST
+requests
+beautifulsoup4
+openpyxl
+python-dotenv
